@@ -6,25 +6,58 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+rm( list = ls()); cat("\014")  # Clear environment
+require(stringr)
+require(plotly)
+require(Hmisc)
+require(tidyr)
+require(dplyr)
+require(ggplot2)
+require(plyr)
+require(reshape2)
+source('../src/r_functions.R')
+data <- read.csv('../data/train.csv')
+names(data) <- sapply(names(data), tolower)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+bla <- c(1,2,3,4,5,6,7,8,9,10)
+bla[-1]
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+dfnan <- fill_nulls(data)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+```{r}
+dfo <- make_dummy(dfnan, sep='_',
+                  known_cats = c('mssubclass'), 
+                  cat_but_keep=c('fireplaces','garagecars', 'yrsold', 'fullbath', 'halfbath', 'kitchenabvgr', 'bsmtfullbath', 'bsmthalfbath',
+                                 'lotfrontage_isNA', 'masvnrarea_isNA', 'garageyrblt_isNA'))
+```
+
+```{r}
+write.csv(dfo, '../train_clean.csv')
+```
+
+
+
+```{r}
+data2 <- read.csv('../data/test.csv')
+df2_nan <- fill_nulls(data)
+```
+
+```{r}
+df2 <- make_dummy(df2_nan, sep='_',
+                  known_cats = c('mssubclass'), 
+                  cat_but_keep=c('fireplaces','garagecars', 'yrsold', 'fullbath', 'halfbath', 'kitchenabvgr', 'bsmtfullbath', 'bsmthalfbath',
+                                 'lotfrontage_isNA', 'masvnrarea_isNA', 'garageyrblt_isNA'))
+```
+```{r}
+write.csv(df2,'../test_clean.csv')
+```
+
