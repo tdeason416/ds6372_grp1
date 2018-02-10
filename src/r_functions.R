@@ -62,8 +62,8 @@ make_dummy <- function(df, sep='&', cat_but_keep=c(), known_cats=c(), drop_other
             is(df[,col])[1] == 'factor' | 
             length(unique(dfo[,col])) < 8){
             print(col)
-            vals <- unique(dfo[,col])[-1]
-            for(val in vals[2:length(vals)]){
+            vals <- unique(dfo[,col])#[-1]
+            for(val in vals){#[1:length(vals)+1]){
                 dfo[, paste(col, val, sep=sep)] = dfo[, col] == val
             }
             dfo <- dfo[, names(dfo) != col]
