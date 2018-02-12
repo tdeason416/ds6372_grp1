@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r cars}
 rm( list = ls()); cat("\014")  # Clear environment
+set.seed(42)
 #install.packages("glmnet")
 library(glmnet)
 require(stringr)
@@ -30,30 +31,69 @@ names(test_data) <- sapply(names(test_data), tolower)
 ```
 
 ```{r}
+plot(saleprice~lotarea, data=data)
+plot(saleprice~yearremodadd, data=data)
+plot(saleprice~wooddecksf, data=data)
+plot(saleprice~x1stflrsf, data=data)
+plot(saleprice~garagearea, data=data)
+plot(saleprice~x2ndflrsf, data=data)
+```
 
+
+
+
+```{r}
 test_data[,'saleprice'] <- 1
 all_data <- rbind.data.frame(data, test_data)
 
 all_data$mssubclass <- factor(all_data$mssubclass)
+all_data$mosold <- factor(all_data$mosold)
 all_data$has_remodadd <- all_data$yearremodadd != all_data$yearbuilt
-all_data <- fill_nulls(all_data)
-all_data$totporchar <- all_data$wooddecksf + all_data$openporchsf + all_data$enclosedporch + all_data$x3ssnporch + all_data$screenporch
+#all_data$totporchar <- all_data$wooddecksf + all_data$openporchsf + all_data$enclosedporch + all_data$x3ssnporch + all_data$screenporch
 
+all_data <- fill_nulls(all_data)
 
 all_data$saleprice <- log(all_data$saleprice + 1)
 all_data$grlivarea <- log(all_data$grlivarea + 1)
 all_data$lotarea <- log(all_data$lotarea + 1)
 all_data$x1stflrsf <- log(all_data$x1stflrsf + 1)
+all_data$has_2ndflrsf <- all_data$x2ndflrsf != 0
 all_data$x2ndflrsf <- log(all_data$x2ndflrsf + 1)
 
 all_data$bsmtunfsf <- log(all_data$bsmtunfsf + 1)
 all_data$bsmtfinsf1 <- log(all_data$bsmtfinsf1 + 1)
+#all_data$has_totalbsmtsf <- all_data$totalbsmtsf != 0
 all_data$totalbsmtsf <- log(all_data$totalbsmtsf + 1)
+#all_data$has_garagearea <- all_data$garagearea != 0
 all_data$garagearea <- log(all_data$garagearea + 1)
+#all_data$has_wooddecksf <- all_data$wooddecksf != 0
 all_data$wooddecksf <- log(all_data$wooddecksf + 1)
+#all_data$has_openporchsf <- log(all_data$openporchsf != 0)
 all_data$openporchsf <- log(all_data$openporchsf +1)
 ```
 
+
+```{r}
+plot(saleprice~lotarea, data=subset(all_data, saleprice > 1 & lotarea > 0))
+plot(saleprice~yearremodadd, data=subset(all_data, saleprice > 1 & has_remodadd == TRUE))
+plot(saleprice~wooddecksf, data=subset(all_data, saleprice > 1 & wooddecksf > 0))
+plot(saleprice~x1stflrsf, data=subset(all_data, saleprice > 1 & x1stflrsf > 0))
+plot(saleprice~garagearea, data=subset(all_data, saleprice > 1 & garagearea > 0))
+plot(saleprice~x2ndflrsf, data=subset(all_data, saleprice > 1 & x2ndflrsf > 0))
+```
+
+
+```{r}
+factors = 0
+not_factors = 0
+for(col in names(data)){
+    if(is(data[,col][1]) == 'factor'){factors = factors + 1}
+    else{not_factors = not_factors + 1}
+}
+print(factors)
+print(not_factors)
+print(sum(is.na(data)))
+```
 
 
 * This model should be formed to facilitate the easy interpretation of parameters for use in helping real estate agents, contractors and prospective buyers gain insight into the important factors that influence housing prices in Ames, Iowa.  Characteristics such as ease of measurement and interpretability should be considered.  As part of the report, confidence intervals should be included.  At the minimum, the model should contain at least one continuous and one categorical variable (interaction may be interesting but not required.)  In addition, model selection techniques may be used and an external cross validation should be conducted to compare competing models (in addition to criterion such as the adjusted R2, AIC, BIC, etc.  Finally, make sure and address multicollinearity issues (VIF, etc.) ( You may not have any multicollinearity issues due to the simplicity of your model.   Note: every group will probably come up with different models here.  Your goal is to simply come up with a valid model, whose parameter estimates yield some useful information to your audience.  This can be a considerably less sophisticated (more parsimonious (less factors / predictors) model than in question 2.    Note 2: Your group is limited to only the techniques we have learned in 6371 and up to Unit 6 of 6372
@@ -84,16 +124,27 @@ all_data$openporchsf <- log(all_data$openporchsf +1)
 * totporchar
 
 ```{r}
-cols <- c('landcontour', 'lotarea', 'neighborhood', 'bldgtype', 'overallqual', 'has_remodadd', 'roofstyle', 'masvnrarea', 'masvnrarea_isNA', 'exterqual', 'foundation', 'bsmtqual', 'heatingqc', 'x1stflrsf', 'x2ndflrsf', 'fullbath', 'halfbath', 'bedroomabvgr', 'fireplacequ', 'yearremodadd', 'garageyrblt', 'garageyrblt_isNA', 'garagecars', 'totporchar', 'saleprice')
+#cols <- c('landcontour', 'lotarea', 'neighborhood', 'bldgtype', 'overallqual', 'has_remodadd', 'roofstyle', 'masvnrarea', 'masvnrarea_isNA', 'exterqual', 'foundation', 'bsmtqual', 'heatingqc', 'x1stflrsf', 'x2ndflrsf', 'fullbath', 'halfbath', 'bedroomabvgr', 'fireplacequ', 'yearremodadd', 'garageyrblt', 'garageyrblt_isNA', 'garagecars', 'totporchar', 'saleprice')
 
 sub_frame <- subset(all_data, saleprice > 1)
-#sub_x <- select(sub_frame, cols)
-#sub_y <- select(sub_frame, saleprice)
-model <- lm(saleprice ~landcontour+lotarea+neighborhood+bldgtype+overallqual+roofstyle+exterqual+foundation+bsmtqual+heatingqc+x1stflrsf+x2ndflrsf+fullbath+halfbath+bedroomabvgr+fireplacequ+yearremodadd+garageyrblt+garageyrblt_isNA+garagecars+totporchar, data=sub_frame)
+model <- lm(saleprice ~landcontour+lotarea+neighborhood+bldgtype+overallqual+foundation+bsmtqual+heatingqc+x1stflrsf+x2ndflrsf+fullbath+bedroomabvgr+fireplacequ+yearremodadd+garagecars, data=sub_frame)
 summary(model)
+
 ```
 
-ems to explain the variance in the model fairly well, but since we used 24 columnd on 1460 data points, we may have overfit the current dataset.
+* Observing the model with 1390 degrees of freedom, we have an adjusted R squared of .8743, so this model seems to explain much of the variance fairly well, but since we used 17 columns on 1460 data points, we may have overfit the current dataset.
+
+```{r}
+length(model$coefficients)
+exp(sort(model$coefficients, decreasing =TRUE))
+```
+
+
+```{r}
+
+```
+
+
 
 ```{r}
 plot(model$residuals)
@@ -104,7 +155,7 @@ pred.int =  predict(mod_2, interval="prediction")
 conf.int =  predict(mod_2, interval="confidence")
 sub_frame$pred.lower <- pred.int[,2]
 sub_frame$pred.upper <- pred.int[,3]
-#Observing the model with 1390 degrees of freedom, we have an adjusted R squared of .8743, so this model seems to explain much of the variance
+
 sub_frame$ci.upper <- conf.int[,2]
 sub_frame$ci.lower <- conf.int[,3]
 
@@ -116,6 +167,37 @@ ggplot(data=sub_frame, aes(x=x1stflrsf, y=saleprice, main='Scatterplot of 1st fl
     geom_abline(intercept=intercept, slope=slope, color='black', size=.2) +
     geom_ribbon(data=sub_frame, aes(ymin= pred.lower, ymax= pred.upper), fill = "blue", alpha = 0.2) +
     geom_ribbon(data=sub_frame, aes(ymin= ci.lower, ymax= ci.upper), fill = "violet", alpha = 0.3)
+
+## plot scatterplot of lot area vs sale price
+mod_3 <- lm(saleprice~lotarea, data=sub_frame)
+pred.int =  predict(mod_3, interval="prediction")
+conf.int =  predict(mod_3, interval="confidence")
+sub_frame$pred.lower <- pred.int[,2]
+sub_frame$pred.upper <- pred.int[,3]
+
+sub_frame$ci.upper <- conf.int[,2]
+sub_frame$ci.lower <- conf.int[,3]
+
+slope <- mod_3$coefficients[2]
+intercept <- mod_3$coefficients[1]
+
+ggplot(data=sub_frame, aes(x=lotarea, y=saleprice, main='Scatterplot of lot square footage vs saleprice')) + 
+    geom_point(color= 'red') +
+    geom_abline(intercept=intercept, slope=slope, color='black', size=.2) +
+    geom_ribbon(data=sub_frame, aes(ymin= pred.lower, ymax= pred.upper), fill = "blue", alpha = 0.2) +
+    geom_ribbon(data=sub_frame, aes(ymin= ci.lower, ymax= ci.upper), fill = "violet", alpha = 0.3)
+
+#Scatterplot of Neighborhood  vs saleprice
+ggplot(data=sub_frame, aes(x=neighborhood, y=exp(saleprice), main='Scatterplot of Neighborhood  vs saleprice')) + 
+    geom_point(color= 'red') + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+#Scatterplot of Fireplacequal  vs saleprice
+ggplot(data=sub_frame, aes(x=fireplacequ, y=exp(saleprice), main='Scatterplot of Fireplacequal  vs saleprice')) + 
+    geom_point(color= 'red') + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+#Scatterplot of Foundation  vs saleprice
+ggplot(data=sub_frame, aes(x=foundation, y=exp(saleprice), main='Scatterplot of Foundation  vs saleprice')) + 
+    geom_point(color= 'red') + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 * The first thing we observe while looking at the residuals is that they appear to be normally distributed and of equal varaince for all points along the axis.  This is an indication that a linear regression is suitable for the model as is, but since we have 24 columns, there is a good chance that there is some covariance within the dataset.
@@ -123,10 +205,11 @@ ggplot(data=sub_frame, aes(x=x1stflrsf, y=saleprice, main='Scatterplot of 1st fl
 
 ```{r}
 summary(lm(saleprice~overallqual*yearremodadd, data=sub_frame))
+summary(lm(saleprice~x1stflrsf*x2ndflrsf, data=sub_frame))
 summary(lm(saleprice~overallqual*garageyrblt, data=sub_frame))
 summary(lm(saleprice~garageyrblt*yearremodadd, data=sub_frame))
 summary(lm(saleprice~x1stflrsf*garagearea, data=sub_frame))
-summary(lm(saleprice~totporchar*lotarea, data=sub_frame))
+#summary(lm(saleprice~totporchar*lotarea, data=sub_frame))
 ```
 
 
@@ -134,15 +217,15 @@ summary(lm(saleprice~totporchar*lotarea, data=sub_frame))
 
 
 ```{r}
-subdata <- dplyr::select(all_data, cols)
-#subdata <- all_data
+#subdata <- dplyr::select(all_data, cols)
+subdata <- all_data
 
 
 
 subdums <- make_dummy(subdata, sep='_', known_cats=c('salecondition'))
 
-tr <- select(subset(subdums, saleprice > 1), -saleprice)
-te <- select(subset(subdums, saleprice <= 1), -saleprice)
+tr <- dplyr::select(subset(subdums, saleprice > 1), -saleprice)
+te <- dplyr::select(subset(subdums, saleprice <= 1), -saleprice)
 
 x_tr <- as.matrix(tr)
 x_te <- as.matrix(te)
@@ -158,12 +241,12 @@ mod$lambda[1000]
 ```
 ```{r}
 # Validating model using cross validation
-cv.out <- cv.glmnet(x_tr, y, alpha=0, nlambda=1000, nfolds=20, lambda.min.ratio=0.0001)
+cv.out <- cv.glmnet(x_tr, y, alpha=0, nlambda=2500, nfolds=10, lambda.min.ratio=0.00005)
 plot(cv.out)
 cv.out$lambda.min
 ```
 
-* the cross validated model gives a mse of 6398.5 which is pretty similar to the in-sample error of 6281.603, so we are happy with it
+* the cross validated model gives a mse of .082515 which is pretty similar to the in-sample error of .032613, so we are happy with it
 
 
 
@@ -181,6 +264,6 @@ pred.df <- data.frame(ran)
 pred.df$SalePrice <- exp(pred)
 names(pred.df) <- c('Id', 'SalePrice')
 head(pred.df)
-write.csv(pred.df, '../data/r_ridge_model.csv', row.names = FALSE)
+write.csv(pred.df, '../data/r_ridge_all_vars2.csv', row.names = FALSE)
 ```
 
