@@ -255,3 +255,24 @@ Attrition_prop_table <- function(variable_name, data.f){
     prop.app <-apply(prop,2,sum)
     return(melt(sweep(prop, MARGIN=2,prop.app,'/')))
 }
+
+plot_ci <- function(x, y, data){
+    model <- lm(y~x, data)
+    pred.int =  predict(model, interval="prediction")
+    conf.int =  predict(model, interval="confidence")
+    sub_frame$pred.lower <- pred.int[,2]
+    sub_frame$pred.upper <- pred.int[,3]
+    sub_frame$ci.upper <- conf.int[,2]
+    sub_frame$ci.lower <- conf.int[,3]
+    
+    slope <- model$coefficients[2]
+    intercept <- model$coefficients[1]
+    
+    plt <-ggplot(data=sub_frame, aes(x=x, y=y, main=paste(paste('Scatterplot of', x), paste('footage vs', y)))) + 
+        geom_point(color= 'red') +
+        geom_abline(intercept=intercept, slope=slope, color='black', size=.2) +
+        geom_ribbon(data=sub_frame, aes(ymin= pred.lower, ymax= pred.upper), fill = "blue", alpha = 0.2) +
+        geom_ribbon(data=sub_frame, aes(ymin= ci.lower, ymax= ci.upper), fill = "violet", alpha = 0.3)
+    
+    return(plt)
+}

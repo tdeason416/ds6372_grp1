@@ -14,6 +14,7 @@ rm( list = ls()); cat("\014")  # Clear environment
 #install.packages("glmnet")
 library(glmnet)
 require(stringr)
+library(multcomp)
 require(plotly)
 require(Hmisc)
 require(tidyr)
@@ -57,7 +58,10 @@ all_data$openporchsf <- log(all_data$openporchsf +1)
 
 * This model should be formed to facilitate the easy interpretation of parameters for use in helping real estate agents, contractors and prospective buyers gain insight into the important factors that influence housing prices in Ames, Iowa.  Characteristics such as ease of measurement and interpretability should be considered.  As part of the report, confidence intervals should be included.  At the minimum, the model should contain at least one continuous and one categorical variable (interaction may be interesting but not required.)  In addition, model selection techniques may be used and an external cross validation should be conducted to compare competing models (in addition to criterion such as the adjusted R2, AIC, BIC, etc.  Finally, make sure and address multicollinearity issues (VIF, etc.) ( You may not have any multicollinearity issues due to the simplicity of your model.   Note: every group will probably come up with different models here.  Your goal is to simply come up with a valid model, whose parameter estimates yield some useful information to your audience.  This can be a considerably less sophisticated (more parsimonious (less factors / predictors) model than in question 2.    Note 2: Your group is limited to only the techniques we have learned in 6371 and up to Unit 6 of 6372
 
+## By looking at all of the variables and identifying those which appear to have the highest impact on salesprice, We have identified the following variables.
+
 * landcontour
+* lotarea
 * neighborhood
 * bldgtype
 * overallqual
@@ -80,15 +84,57 @@ all_data$openporchsf <- log(all_data$openporchsf +1)
 * totporchar
 
 ```{r}
-sum(is.na(all_data))
+cols <- c('landcontour', 'lotarea', 'neighborhood', 'bldgtype', 'overallqual', 'has_remodadd', 'roofstyle', 'masvnrarea', 'masvnrarea_isNA', 'exterqual', 'foundation', 'bsmtqual', 'heatingqc', 'x1stflrsf', 'x2ndflrsf', 'fullbath', 'halfbath', 'bedroomabvgr', 'fireplacequ', 'yearremodadd', 'garageyrblt', 'garageyrblt_isNA', 'garagecars', 'totporchar', 'saleprice')
+
+sub_frame <- subset(all_data, saleprice > 1)
+#sub_x <- select(sub_frame, cols)
+#sub_y <- select(sub_frame, saleprice)
+model <- lm(saleprice ~landcontour+lotarea+neighborhood+bldgtype+overallqual+roofstyle+exterqual+foundation+bsmtqual+heatingqc+x1stflrsf+x2ndflrsf+fullbath+halfbath+bedroomabvgr+fireplacequ+yearremodadd+garageyrblt+garageyrblt_isNA+garagecars+totporchar, data=sub_frame)
+summary(model)
 ```
 
 
+* The first things we observe is that based on 1388 degrees of freedom, we have an adjusted R squared of .8743, so this model seems to explain the variance in the model fairly well, but since we used 24 columnd on 1460 data points, we may have overfit the current dataset.
+
+```{r}
+plot(model$residuals)
+
+## plot scatterplot of 1st floor square footage vs sale price
+mod_2 <- lm(saleprice~x1stflrsf, data=sub_frame)
+pred.int =  predict(mod_2, interval="prediction")
+conf.int =  predict(mod_2, interval="confidence")
+sub_frame$pred.lower <- pred.int[,2]
+sub_frame$pred.upper <- pred.int[,3]
+sub_frame$ci.upper <- conf.int[,2]
+sub_frame$ci.lower <- conf.int[,3]
+
+slope <- mod_2$coefficients[2]
+intercept <- mod_2$coefficients[1]
+
+ggplot(data=sub_frame, aes(x=x1stflrsf, y=saleprice, main='Scatterplot of 1st floor square footage vs saleprice')) + 
+    geom_point(color= 'red') +salr
+    geom_abline(intercept=intercept, slope=slope, color='black', size=.2) +
+    geom_ribbon(data=sub_frame, aes(ymin= pred.lower, ymax= pred.upper), fill = "blue", alpha = 0.2) +
+    geom_ribbon(data=sub_frame, aes(ymin= ci.lower, ymax= ci.upper), fill = "violet", alpha = 0.3)
+```
+
+* The first thing we observe while looking at the residuals is that they appear to be normally distributed and of equal varaince for all points along the axis.  This is an indication that a linear regression is suitable for the model as is, but since we have 24 columns, there is a good chance that there is some covariance within the dataset.
 
 
 ```{r}
-cols <- c('landcontour', 'neighborhood', 'bldgtype', 'overallqual', 'has_remodadd', 'roofstyle', 'masvnrarea', 'masvnrarea_isNA', 'exterqual', 'foundation', 'bsmtqual', 'heatingqc', 'x1stflrsf', 'x2ndflrsf', 'fullbath', 'halfbath', 'bedroomabvgr', 'fireplacequ', 'yearremodadd', 'garageyrblt', 'garageyrblt_isNA', 'garagecars', 'totporchar', 'saleprice')
+summary(lm(saleprice~overallqual*yearremodadd, data=sub_frame))
+summary(lm(saleprice~overallqual*garageyrblt, data=sub_frame))
+summary(lm(saleprice~garageyrblt*yearremodadd, data=sub_frame))
+summary(lm(saleprice~x1stflrsf*garagearea, data=sub_frame))
+summary(lm(saleprice~totporchar*lotarea, data=sub_frame))
 
+```
+
+
+* looking at covariance between many of the numeric columns, it is clear that there is a good amount of covariance between the variables.  In order to counter this, instead of going through all catagories and deciding which one to keep on a case by case basis, we will use ridge regression to counter the covariance.
+
+
+```{r}
 subdata <- select(all_data, cols)
 
 subdums <- make_dummy(subdata, sep='_', cat_but_keep=c('potato'), known_cats=c('swiss'))
