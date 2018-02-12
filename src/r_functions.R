@@ -57,10 +57,11 @@ make_dummy <- function(df, sep='&', cat_but_keep=c(), known_cats=c(), drop_other
     # dfo: data.frame
     #     -   all data is bool
     dfo <- df
-    for(col in names(select(df,-one_of(cat_but_keep)))){
+    #for(col in names(select(df,-one_of(cat_but_keep)))){
+    for(col in names(df)){
         if( col %in% known_cats |
             is(df[,col])[1] == 'factor' | 
-            length(unique(dfo[,col])) < 8){
+            length(unique(dfo[,col])) < 4){
             print(col)
             vals <- unique(dfo[,col])#[-1]
             for(val in vals){#[1:length(vals)+1]){

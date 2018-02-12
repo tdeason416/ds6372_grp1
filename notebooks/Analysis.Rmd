@@ -93,8 +93,7 @@ model <- lm(saleprice ~landcontour+lotarea+neighborhood+bldgtype+overallqual+roo
 summary(model)
 ```
 
-
-* The first things we observe is that based on 1388 degrees of freedom, we have an adjusted R squared of .8743, so this model seems to explain the variance in the model fairly well, but since we used 24 columnd on 1460 data points, we may have overfit the current dataset.
+ems to explain the variance in the model fairly well, but since we used 24 columnd on 1460 data points, we may have overfit the current dataset.
 
 ```{r}
 plot(model$residuals)
@@ -105,6 +104,7 @@ pred.int =  predict(mod_2, interval="prediction")
 conf.int =  predict(mod_2, interval="confidence")
 sub_frame$pred.lower <- pred.int[,2]
 sub_frame$pred.upper <- pred.int[,3]
+#Observing the model with 1390 degrees of freedom, we have an adjusted R squared of .8743, so this model seems to explain much of the variance
 sub_frame$ci.upper <- conf.int[,2]
 sub_frame$ci.lower <- conf.int[,3]
 
@@ -112,7 +112,7 @@ slope <- mod_2$coefficients[2]
 intercept <- mod_2$coefficients[1]
 
 ggplot(data=sub_frame, aes(x=x1stflrsf, y=saleprice, main='Scatterplot of 1st floor square footage vs saleprice')) + 
-    geom_point(color= 'red') +salr
+    geom_point(color= 'red') +
     geom_abline(intercept=intercept, slope=slope, color='black', size=.2) +
     geom_ribbon(data=sub_frame, aes(ymin= pred.lower, ymax= pred.upper), fill = "blue", alpha = 0.2) +
     geom_ribbon(data=sub_frame, aes(ymin= ci.lower, ymax= ci.upper), fill = "violet", alpha = 0.3)
@@ -127,7 +127,6 @@ summary(lm(saleprice~overallqual*garageyrblt, data=sub_frame))
 summary(lm(saleprice~garageyrblt*yearremodadd, data=sub_frame))
 summary(lm(saleprice~x1stflrsf*garagearea, data=sub_frame))
 summary(lm(saleprice~totporchar*lotarea, data=sub_frame))
-
 ```
 
 
@@ -135,9 +134,12 @@ summary(lm(saleprice~totporchar*lotarea, data=sub_frame))
 
 
 ```{r}
-subdata <- select(all_data, cols)
+subdata <- dplyr::select(all_data, cols)
+#subdata <- all_data
 
-subdums <- make_dummy(subdata, sep='_', cat_but_keep=c('potato'), known_cats=c('swiss'))
+
+
+subdums <- make_dummy(subdata, sep='_', known_cats=c('salecondition'))
 
 tr <- select(subset(subdums, saleprice > 1), -saleprice)
 te <- select(subset(subdums, saleprice <= 1), -saleprice)
