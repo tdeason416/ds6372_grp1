@@ -204,12 +204,10 @@ ggplot(data=sub_frame, aes(x=foundation, y=exp(saleprice), main='Scatterplot of 
 
 
 ```{r}
-summary(lm(saleprice~overallqual*yearremodadd, data=sub_frame))
-summary(lm(saleprice~x1stflrsf*x2ndflrsf, data=sub_frame))
-summary(lm(saleprice~overallqual*garageyrblt, data=sub_frame))
-summary(lm(saleprice~garageyrblt*yearremodadd, data=sub_frame))
-summary(lm(saleprice~x1stflrsf*garagearea, data=sub_frame))
-#summary(lm(saleprice~totporchar*lotarea, data=sub_frame))
+# chart covariance of continous variables
+model <- summary(lm(saleprice~x1stflrsf*lotarea*yearremodadd*x2ndflrsf*garagearea*garageyrblt*overallqual, data=sub_frame))
+pvals = coef(model)[,4]
+sort(pvals[pvals < .05], decreasing=FALSE)[1:20]
 ```
 
 
@@ -217,6 +215,8 @@ summary(lm(saleprice~x1stflrsf*garagearea, data=sub_frame))
 
 
 ```{r}
+## prepare data for use with glmnet tools (lasso and ridge regression)
+
 #subdata <- dplyr::select(all_data, cols)
 subdata <- all_data
 
@@ -230,33 +230,36 @@ te <- dplyr::select(subset(subdums, saleprice <= 1), -saleprice)
 x_tr <- as.matrix(tr)
 x_te <- as.matrix(te)
 y <- subset(all_data, saleprice > 1)$saleprice
+```
 
+
+```{r}
+## Generaating Ridge model
 mod <- glmnet(x_tr,
               y,
               alpha=0,
-              nlambda=1000,
-              lambda.min.ratio=0.0001)
-coef(mod)[,100]
-mod$lambda[1000]
+              nlambda=2500,
+              lambda.min.ratio=0.00005)
+plot(cv.out)
+sort(coef(mod)[,100], decreasing = TRUE)[1:25]
+mod$lambda[2300]
 ```
 ```{r}
 # Validating model using cross validation
 cv.out <- cv.glmnet(x_tr, y, alpha=0, nlambda=2500, nfolds=10, lambda.min.ratio=0.00005)
 plot(cv.out)
 cv.out$lambda.min
+coefs <- predict(mod, s=cv.out$lambda.min, type="coefficients")[,1]
+sort(coefs, decreasing = TRUE)[1:40]
 ```
 
-* the cross validated model gives a mse of .082515 which is pretty similar to the in-sample error of .032613, so we are happy with it
+* the cross validated model gives a mse of .0 which is pretty similar to the in-sample error of .032613, so we are happy with it
+
+* the cross validated model for ridge (alpha = 1) gives a mse of .036 which is larger than the in-sample error of .00622, but overall still looks pretty good.  In fact it looks better then ridge regression
 
 
 
 ```{r}
-#coefs <- predict(mod, s=cv.out$lambda.min, type="coefficients")
-#subtest <- select(test_data, cols)
-#subtest <- make_dummy(subtest, sep='_', cat_but_keep=c('potato'), known_cats=c('swiss'))
-#dim(x_te)
-#coefs_noint <- length(coefs[2:length(coefs)-1])
-#x_te %*% coefs_noint
 pred <- predict(cv.out, x_te, s='lambda.min')
 
 ran <- 1:length(pred) + 1460
@@ -264,6 +267,44 @@ pred.df <- data.frame(ran)
 pred.df$SalePrice <- exp(pred)
 names(pred.df) <- c('Id', 'SalePrice')
 head(pred.df)
-write.csv(pred.df, '../data/r_ridge_all_vars2.csv', row.names = FALSE)
+write.csv(pred.df, '../data/r_ridge_all_vars.csv', row.names = FALSE)
+```
+
+
+```{r}
+## Generaating Lasso model
+mod <- glmnet(x_tr,
+              y,
+              alpha=1,
+              nlambda=2500,
+              lambda.min.ratio=0.00005)
+sort(coef(mod)[,1000], decreasing = TRUE)[1:25]
+plot(mod)
+mod$lambda[1500]
+```
+```{r}
+# Validating model using cross validation
+cv.out <- cv.glmnet(x_tr, y, alpha=1, nlambda=2500, nfolds=10, lambda.min.ratio=0.00005)
+plot(cv.out)
+cv.out$lambda.min
+coefs <- predict(mod, s=cv.out$lambda.min, type="coefficients")[,1]
+sort(coefs, decreasing = TRUE)[1:25]
+```
+
+* the cross validated model gives a mse of .0 which is pretty similar to the in-sample error of .032613, so we are happy with it
+
+* the cross validated model for ridge (alpha = 1) gives a mse of .036 which is larger than the in-sample error of .00622, but overall still looks pretty good.  In fact it looks better then ridge regression
+
+
+
+```{r}
+pred <- predict(cv.out, x_te, s='lambda.min')
+
+ran <- 1:length(pred) + 1460
+pred.df <- data.frame(ran)
+pred.df$SalePrice <- exp(pred)
+names(pred.df) <- c('Id', 'SalePrice')
+head(pred.df)
+write.csv(pred.df, '../data/r_lasso_all_vars.csv', row.names = FALSE)
 ```
 
