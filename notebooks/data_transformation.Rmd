@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 rm( list = ls()); cat("\014")  # Clear environment
+setwd("/Users/travis/Documents/Education/SMU/OneDrive - Southern Methodist University/Code/ds6372_grp1/notebooks")
 require(stringr)
 require(plotly)
 require(Hmisc)
@@ -20,44 +21,27 @@ data <- read.csv('../data/train.csv')
 names(data) <- sapply(names(data), tolower)
 ```
 
-```{r}
-bla <- c(1,2,3,4,5,6,7,8,9,10)
-bla[-1]
-```
-
-
-```{r}
-dfnan <- fill_nulls(data)
-```
-
-
-
-
-```{r}
-dfo <- make_dummy(dfnan, sep='_',
-                  known_cats = c('mssubclass'), 
-                  cat_but_keep=c('fireplaces','garagecars', 'yrsold', 'fullbath', 'halfbath', 'kitchenabvgr', 'bsmtfullbath', 'bsmthalfbath',
-                                 'lotfrontage_isNA', 'masvnrarea_isNA', 'garageyrblt_isNA'))
-```
-
-```{r}
-write.csv(dfo, '../train_clean.csv')
-```
-
 
 
 ```{r}
 data2 <- read.csv('../data/test.csv')
-df2_nan <- fill_nulls(data)
+names(data2) <- sapply(names(data2), tolower)
 ```
 
+
+
 ```{r}
-df2 <- make_dummy(df2_nan, sep='_',
+data2$saleprice = -1
+datas <- rbind.data.frame(data,data2)
+dfs_nan <- fill_nulls(datas)
+dfs <- make_dummy(dfs_nan, sep='_',
                   known_cats = c('mssubclass'), 
                   cat_but_keep=c('fireplaces','garagecars', 'yrsold', 'fullbath', 'halfbath', 'kitchenabvgr', 'bsmtfullbath', 'bsmthalfbath',
                                  'lotfrontage_isNA', 'masvnrarea_isNA', 'garageyrblt_isNA'))
-```
-```{r}
-write.csv(df2,'../test_clean.csv')
+dfo <- data[data$saleprice != -1,]
+df2 <- data[data$saleprice == -1,]
+
+write.csv(df2,'../data/test_clean.csv')
+write.csv(dfo, '../data/train_clean.csv')
 ```
 

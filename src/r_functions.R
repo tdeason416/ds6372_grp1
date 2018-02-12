@@ -109,7 +109,7 @@ find_covariance <- function(df, items, sep='+'){
     for(col1 in items){
         for(col2 in items){
             if(col1 != col2){
-                covar[paste(col1, col2, sep='+')] = (sum(df[,col1] == TRUE & df[,col2] == TRUE) + .00001) / (max(c(sum(df[,col1] == TRUE), sum(df[,col2] == TRUE))) + .00001)
+                covar[paste(col1, col2, sep='+')] = (sum(df[,col1] == TRUE & df[,col2] == TRUE)) / (max(c(sum(df[,col1] == TRUE), sum(df[,col2] == TRUE))) + .00001)
                 }
             }
         items = items[items != col1]
@@ -118,7 +118,7 @@ find_covariance <- function(df, items, sep='+'){
         return(covar[c(TRUE, FALSE)])
     }
 
-bin_columns <- function(data, min_size=100, num_splits){
+bin_columns <- function(data, min_size=100, num_splits=6){
     # Convert continous data into discrete catagorical data
     # by splitting continous data into equal sized (by number of members) groups.
     # --------
