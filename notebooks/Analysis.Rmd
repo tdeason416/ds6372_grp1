@@ -30,13 +30,27 @@ names(test_data) <- sapply(names(test_data), tolower)
 
 ```{r}
 
-test_data[,'saleprice'] <- -1
+test_data[,'saleprice'] <- 1
 all_data <- rbind.data.frame(data, test_data)
 
 all_data$mssubclass <- factor(all_data$mssubclass)
 all_data$has_remodadd <- all_data$yearremodadd != all_data$yearbuilt
 all_data <- fill_nulls(all_data)
 all_data$totporchar <- all_data$wooddecksf + all_data$openporchsf + all_data$enclosedporch + all_data$x3ssnporch + all_data$screenporch
+
+
+all_data$saleprice <- log(all_data$saleprice + 1)
+all_data$grlivarea <- log(all_data$grlivarea + 1)
+all_data$lotarea <- log(all_data$lotarea + 1)
+all_data$x1stflrsf <- log(all_data$x1stflrsf + 1)
+all_data$x2ndflrsf <- log(all_data$x2ndflrsf + 1)
+
+all_data$bsmtunfsf <- log(all_data$bsmtunfsf + 1)
+all_data$bsmtfinsf1 <- log(all_data$bsmtfinsf1 + 1)
+all_data$totalbsmtsf <- log(all_data$totalbsmtsf + 1)
+all_data$garagearea <- log(all_data$garagearea + 1)
+all_data$wooddecksf <- log(all_data$wooddecksf + 1)
+all_data$openporchsf <- log(all_data$openporchsf +1)
 ```
 
 
@@ -66,7 +80,7 @@ all_data$totporchar <- all_data$wooddecksf + all_data$openporchsf + all_data$enc
 * totporchar
 
 ```{r}
-sum(is.na(data))
+sum(is.na(all_data))
 ```
 
 
@@ -79,10 +93,12 @@ subdata <- select(all_data, cols)
 
 subdums <- make_dummy(subdata, sep='_', cat_but_keep=c('potato'), known_cats=c('swiss'))
 
+tr <- select(subset(subdums, saleprice > 1), -saleprice)
+te <- select(subset(subdums, saleprice <= 1), -saleprice)
 
-x_tr <- as.matrix(select(subset(subdums, saleprice != -1), -saleprice))
-x_te <- as.matrix(select(subset(subdums, saleprice == -1), -saleprice))
-y <- data$saleprice
+x_tr <- as.matrix(tr)
+x_te <- as.matrix(te)
+y <- subset(all_data, saleprice > 1)$saleprice
 
 mod <- glmnet(x_tr,
               y,
@@ -110,7 +126,13 @@ cv.out$lambda.min
 #dim(x_te)
 #coefs_noint <- length(coefs[2:length(coefs)-1])
 #x_te %*% coefs_noint
-prediction <- predict(cv.out, x_te, s='lambda.min')
-write.csv(prediction, '../data/r_ridge_model.csv')
+pred <- predict(cv.out, x_te, s='lambda.min')
+
+ran <- 1:length(pred) + 1460
+pred.df <- data.frame(ran)
+pred.df$SalePrice <- exp(pred)
+names(pred.df) <- c('Id', 'SalePrice')
+head(pred.df)
+write.csv(pred.df, '../data/r_ridge_model.csv', row.names = FALSE)
 ```
 
