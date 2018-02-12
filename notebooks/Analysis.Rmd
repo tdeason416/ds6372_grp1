@@ -11,8 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r cars}
 rm( list = ls()); cat("\014")  # Clear environment
-#install.packages('lme4')
-library(lme4)
+#install.packages("glmnet")
+library(glmnet)
 require(stringr)
 require(plotly)
 require(Hmisc)
@@ -23,22 +23,27 @@ require(plyr)
 require(reshape2)
 source('../src/r_functions.R')
 data <- read.csv('../data/train.csv')
+test_data <- read.csv('../data/test.csv')
 names(data) <- sapply(names(data), tolower)
+names(test_data) <- sapply(names(test_data), tolower)
 ```
 
 ```{r}
-data$mssubclass <- factor(data$mssubclass)
-data$has_remodadd <- data$yearremodadd != data$yearbuilt
-data <- fill_nulls(data)
-data$totporchar <- data$wooddecksf + data$openporchsf + data$enclosedporch + data$x3ssnporch + data$screenporch
-sum(data$has_remodadd)
+
+test_data[,'saleprice'] <- -1
+all_data <- rbind.data.frame(data, test_data)
+
+all_data$mssubclass <- factor(all_data$mssubclass)
+all_data$has_remodadd <- all_data$yearremodadd != all_data$yearbuilt
+all_data <- fill_nulls(all_data)
+all_data$totporchar <- all_data$wooddecksf + all_data$openporchsf + all_data$enclosedporch + all_data$x3ssnporch + all_data$screenporch
 ```
 
 
 
 * This model should be formed to facilitate the easy interpretation of parameters for use in helping real estate agents, contractors and prospective buyers gain insight into the important factors that influence housing prices in Ames, Iowa.  Characteristics such as ease of measurement and interpretability should be considered.  As part of the report, confidence intervals should be included.  At the minimum, the model should contain at least one continuous and one categorical variable (interaction may be interesting but not required.)  In addition, model selection techniques may be used and an external cross validation should be conducted to compare competing models (in addition to criterion such as the adjusted R2, AIC, BIC, etc.  Finally, make sure and address multicollinearity issues (VIF, etc.) ( You may not have any multicollinearity issues due to the simplicity of your model.   Note: every group will probably come up with different models here.  Your goal is to simply come up with a valid model, whose parameter estimates yield some useful information to your audience.  This can be a considerably less sophisticated (more parsimonious (less factors / predictors) model than in question 2.    Note 2: Your group is limited to only the techniques we have learned in 6371 and up to Unit 6 of 6372
 
-* landcontour is very valuable
+* landcontour
 * neighborhood
 * bldgtype
 * overallqual
@@ -60,13 +65,52 @@ sum(data$has_remodadd)
 * garagecars
 * totporchar
 
-
-
+```{r}
+sum(is.na(data))
+```
 
 
 
 
 ```{r}
-summary(lm(saleprice~ fence, data=data))
+cols <- c('landcontour', 'neighborhood', 'bldgtype', 'overallqual', 'has_remodadd', 'roofstyle', 'masvnrarea', 'masvnrarea_isNA', 'exterqual', 'foundation', 'bsmtqual', 'heatingqc', 'x1stflrsf', 'x2ndflrsf', 'fullbath', 'halfbath', 'bedroomabvgr', 'fireplacequ', 'yearremodadd', 'garageyrblt', 'garageyrblt_isNA', 'garagecars', 'totporchar', 'saleprice')
+
+subdata <- select(all_data, cols)
+
+subdums <- make_dummy(subdata, sep='_', cat_but_keep=c('potato'), known_cats=c('swiss'))
+
+
+x_tr <- as.matrix(select(subset(subdums, saleprice != -1), -saleprice))
+x_te <- as.matrix(select(subset(subdums, saleprice == -1), -saleprice))
+y <- data$saleprice
+
+mod <- glmnet(x_tr,
+              y,
+              alpha=0,
+              nlambda=1000,
+              lambda.min.ratio=0.0001)
+coef(mod)[,100]
+mod$lambda[1000]
+```
+```{r}
+# Validating model using cross validation
+cv.out <- cv.glmnet(x_tr, y, alpha=0, nlambda=1000, nfolds=20, lambda.min.ratio=0.0001)
+plot(cv.out)
+cv.out$lambda.min
+```
+
+* the cross validated model gives a mse of 6398.5 which is pretty similar to the in-sample error of 6281.603, so we are happy with it
+
+
+
+```{r}
+#coefs <- predict(mod, s=cv.out$lambda.min, type="coefficients")
+#subtest <- select(test_data, cols)
+#subtest <- make_dummy(subtest, sep='_', cat_but_keep=c('potato'), known_cats=c('swiss'))
+#dim(x_te)
+#coefs_noint <- length(coefs[2:length(coefs)-1])
+#x_te %*% coefs_noint
+prediction <- predict(cv.out, x_te, s='lambda.min')
+write.csv(prediction, '../data/r_ridge_model.csv')
 ```
 
