@@ -240,7 +240,7 @@ mod <- glmnet(x_tr,
               alpha=0,
               nlambda=2500,
               lambda.min.ratio=0.00005)
-plot(cv.out)
+plot(mod)
 sort(coef(mod)[,100], decreasing = TRUE)[1:25]
 mod$lambda[2300]
 ```
@@ -250,10 +250,10 @@ cv.out <- cv.glmnet(x_tr, y, alpha=0, nlambda=2500, nfolds=10, lambda.min.ratio=
 plot(cv.out)
 cv.out$lambda.min
 coefs <- predict(mod, s=cv.out$lambda.min, type="coefficients")[,1]
-sort(coefs, decreasing = TRUE)[1:40]
+sort(coefs, decreasing = TRUE)[1:25]
 ```
 
-* the cross validated model gives a mse of .0 which is pretty similar to the in-sample error of .032613, so we are happy with it
+* the cross validated model gives a mse of .1236 which is pretty similar to the in-sample error of .032613, so we are happy with it
 
 * the cross validated model for ridge (alpha = 1) gives a mse of .036 which is larger than the in-sample error of .00622, but overall still looks pretty good.  In fact it looks better then ridge regression
 
