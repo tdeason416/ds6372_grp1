@@ -126,8 +126,10 @@ print(sum(is.na(data)))
 ```{r}
 #cols <- c('landcontour', 'lotarea', 'neighborhood', 'bldgtype', 'overallqual', 'has_remodadd', 'roofstyle', 'masvnrarea', 'masvnrarea_isNA', 'exterqual', 'foundation', 'bsmtqual', 'heatingqc', 'x1stflrsf', 'x2ndflrsf', 'fullbath', 'halfbath', 'bedroomabvgr', 'fireplacequ', 'yearremodadd', 'garageyrblt', 'garageyrblt_isNA', 'garagecars', 'totporchar', 'saleprice')
 
+# simple model
 sub_frame <- subset(all_data, saleprice > 1)
-model <- lm(saleprice ~landcontour+lotarea+neighborhood+bldgtype+overallqual+foundation+bsmtqual+heatingqc+x1stflrsf+x2ndflrsf+fullbath+bedroomabvgr+fireplacequ+yearremodadd+garagecars, data=sub_frame)
+#model <- lm(saleprice ~landcontour+lotarea+neighborhood+bldgtype+overallqual+foundation+bsmtqual+heatingqc+x1stflrsf+x2ndflrsf+fullbath+bedroomabvgr+fireplacequ+yearremodadd+garagecars, data=sub_frame)
+model <-  lm(saleprice ~ neighborhood + grlivarea + overallqual + overallcond + yearbuilt, data=sub_frame)
 summary(model)
 
 ```
@@ -205,7 +207,7 @@ ggplot(data=sub_frame, aes(x=foundation, y=exp(saleprice), main='Scatterplot of 
 
 ```{r}
 # chart covariance of continous variables
-model <- summary(lm(saleprice~x1stflrsf*lotarea*yearremodadd*x2ndflrsf*garagearea*garageyrblt*overallqual, data=sub_frame))
+model <- summary(lm(saleprice ~ neighborhood * grlivarea * overallqual * overallcond * yearbuilt, data=sub_frame))
 pvals = coef(model)[,4]
 sort(pvals[pvals < .05], decreasing=FALSE)[1:20]
 ```
