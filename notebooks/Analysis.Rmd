@@ -253,6 +253,7 @@ plot(cv.out)
 cv.out$lambda.min
 coefs <- predict(mod, s=cv.out$lambda.min, type="coefficients")[,1]
 sort(coefs, decreasing = TRUE)[1:25]
+p <- (length(coefs[coefs > 0]))
 ```
 
 * the cross validated model gives a mse of .1236 which is pretty similar to the in-sample error of .032613, so we are happy with it
@@ -263,13 +264,19 @@ sort(coefs, decreasing = TRUE)[1:25]
 
 ```{r}
 pred <- predict(cv.out, x_te, s='lambda.min')
-
+pred_inmod <- predict(cv.out, x_tr, s='lambda.min')
+tot_variance <- sum((y - mean(y))**2)
+mod_variance <- sum((y - pred_inmod)**2)
+r2 <- 1 - mod_variance / tot_variance
 ran <- 1:length(pred) + 1460
 pred.df <- data.frame(ran)
 pred.df$SalePrice <- exp(pred)
 names(pred.df) <- c('Id', 'SalePrice')
 head(pred.df)
 write.csv(pred.df, '../data/r_ridge_all_vars.csv', row.names = FALSE)
+AICc <- 2*((p**2) + p)/(1460 - p - 1)
+print(AICc)
+print(r2)
 ```
 
 
@@ -291,7 +298,9 @@ plot(cv.out)
 cv.out$lambda.min
 coefs <- predict(mod, s=cv.out$lambda.min, type="coefficients")[,1]
 sort(coefs, decreasing = TRUE)[1:25]
+p <- (length(coefs[coefs > 0]))
 ```
+
 
 * the cross validated model gives a mse of .0 which is pretty similar to the in-sample error of .032613, so we are happy with it
 
@@ -301,12 +310,19 @@ sort(coefs, decreasing = TRUE)[1:25]
 
 ```{r}
 pred <- predict(cv.out, x_te, s='lambda.min')
-
+pred_inmod <- predict(cv.out, x_tr, s='lambda.min')
+tot_variance <- sum((y - mean(y))**2)
+mod_variance <- sum((y - pred_inmod)**2)
+r2 <- 1 - mod_variance / tot_variance
+adj_r2 <- (1 - ((1-r2)*(1460 - 1)) / (1460 - p - 1))
+print(r2)
 ran <- 1:length(pred) + 1460
 pred.df <- data.frame(ran)
 pred.df$SalePrice <- exp(pred)
 names(pred.df) <- c('Id', 'SalePrice')
 head(pred.df)
 write.csv(pred.df, '../data/r_lasso_all_vars.csv', row.names = FALSE)
+AICc <- 2*((p**2) + p)/(1460 - p - 1)
+print(AICc)
 ```
 
